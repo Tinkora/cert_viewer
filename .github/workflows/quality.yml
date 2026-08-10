@@ -1,0 +1,73 @@
+name: quality
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust quality, MSRV, and coverage
+    uses: Tinkora/.github/.github/workflows/reusable-rust-quality.yml@af8ae92c2083c55283187be0d6a1ffba7740df86
+    permissions:
+      contents: read
+    with:
+      toolchain: 1.95.0
+      msrv: 1.95.0
+      locked: true
+      coverage: true
+
+  wasm:
+    name: WASM quality
+    uses: Tinkora/.github/.github/workflows/reusable-wasm-quality.yml@af8ae92c2083c55283187be0d6a1ffba7740df86
+    permissions:
+      contents: read
+    with:
+      working-directory: crates/cert_viewer_web
+      toolchain: 1.95.0
+      locked: true
+      playwright-smoke: false
+
+  browser:
+    name: Browser tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install Rust and WebAssembly target
+        run: |
+          rustup toolchain install 1.95.0 --profile minimal --no-self-update
+          rustup target add wasm32-unknown-unknown --toolchain 1.95.0
+
+      - name: Install wasm-pack
+        run: cargo +1.95.0 install wasm-pack --version 0.15.0 --locked
+
+      - name: Install Node.js dependencies and Chromium
+        run: |
+          npm ci --ignore-scripts
+          npx --no-install playwright install --with-deps chromium
+
+      - name: Test web modules
+        run: npm run test:web
+
+      - name: Validate schema
+        run: npm run test:schema
+
+      - name: Run the complete browser suite
+        env:
+          CI: "true"
+          RUSTUP_TOOLCHAIN: 1.95.0
+        run: npm run test:browser

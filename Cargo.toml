@@ -1,0 +1,28 @@
+[workspace]
+members = ["crates/cert_viewer_core", "crates/cert_viewer_web"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/Tinkora/cert_viewer"
+rust-version = "1.95"
+
+[workspace.dependencies]
+hex = "0.4.3"
+js-sys = "0.3.81"
+pem = "3.0.6"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.143"
+serde-wasm-bindgen = "0.6.5"
+sha1 = "0.10.6"
+sha2 = "0.10.9"
+thiserror = "2.0.16"
+wasm-bindgen = "0.2.104"
+wasm-bindgen-test = "0.3.54"
+x509-parser = "0.18.1"
+
+[profile.release]
+lto = "thin"
+strip = true

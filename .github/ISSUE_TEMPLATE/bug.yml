@@ -1,0 +1,62 @@
+name: Bug report / Bug 报告
+description: Report reproducible behavior that differs from the documentation. / 报告与文档不符的可复现行为。
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for a reproducible report. Do not attach sensitive certificates or private keys.
+        感谢提供可复现报告。请勿附加敏感证书或私钥。
+  - type: dropdown
+    id: security
+    attributes:
+      label: Security check / 安全检查
+      description: Security vulnerabilities must use Private Vulnerability Reporting, not a public issue. / 安全漏洞必须通过 Private Vulnerability Reporting 报告，不能创建公开 issue。
+      options:
+        - This is not a security vulnerability. / 这不是安全漏洞。
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit / 版本或 commit
+      placeholder: v0.1.0 or full commit SHA
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Actual behavior / 实际行为
+      description: Explain what happened and include the exact error text. / 说明发生了什么，并包含准确错误文本。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps / 复现步骤
+      placeholder: |
+        1. Open...
+        2. Load a public or synthetic certificate...
+        3. Select...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / 环境
+      description: Include browser version, operating system, and whether this is the live or self-hosted site. / 包含浏览器版本、操作系统，以及在线或自托管站点。
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Non-sensitive evidence / 非敏感证据
+      description: Add console output, screenshots, or a public/synthetic certificate only when safe. / 仅在安全时添加 console 输出、截图或公开/合成证书。

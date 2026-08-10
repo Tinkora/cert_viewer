@@ -1,0 +1,11 @@
+/dist/
+/node_modules/
+/output/
+/playwright-report/
+/target/
+/test-results/
+/coverage/
+/pkg/
+/crates/*/pkg/
+*.lcov
+.DS_Store

@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "input_format": "der",
+  "certificates": [
+    {
+      "input_index": 0,
+      "version": 3,
+      "serial_number": "1001",
+      "subject": {
+        "common_name": "rsa.fixture.tinkora.test",
+        "organization": "Tinkora Test",
+        "organizational_unit": null,
+        "country": "US",
+        "state": null,
+        "locality": null,
+        "entries": [
+          {
+            "oid": "2.5.4.6",
+            "value": "US",
+            "value_format": "text"
+          },
+          {
+            "oid": "2.5.4.10",
+            "value": "Tinkora Test",
+            "value_format": "text"
+          },
+          {
+            "oid": "2.5.4.3",
+            "value": "rsa.fixture.tinkora.test",
+            "value_format": "text"
+          }
+        ]
+      },
+      "issuer": {
+        "common_name": "rsa.fixture.tinkora.test",
+        "organization": "Tinkora Test",
+        "organizational_unit": null,
+        "country": "US",
+        "state": null,
+        "locality": null,
+        "entries": [
+          {
+            "oid": "2.5.4.6",
+            "value": "US",
+            "value_format": "text"
+          },
+          {
+            "oid": "2.5.4.10",
+            "value": "Tinkora Test",
+            "value_format": "text"
+          },
+          {
+            "oid": "2.5.4.3",
+            "value": "rsa.fixture.tinkora.test",
+            "value_format": "text"
+          }
+        ]
+      },
+      "not_before_unix": 1786339310,
+      "not_after_unix": 2101699310,
+      "date_status": "within_stated_dates",
+      "subject_alt_names": [
+        {
+          "kind": "dns",
+          "value": "rsa.fixture.tinkora.test"
+        },
+        {
+          "kind": "dns",
+          "value": "alt.fixture.tinkora.test"
+        },
+        {
+          "kind": "ip",
+          "value": "192.0.2.10"
+        },
+        {
+          "kind": "email",
+          "value": "fixture@tinkora.test"
+        },
+        {
+          "kind": "uri",
+          "value": "https://fixture.tinkora.test/cert"
+        }
+      ],
+      "key_usage": [
+        "digital_signature",
+        "key_encipherment"
+      ],
+      "extended_key_usage": [
+        "server_auth",
+        "client_auth"
+      ],
+      "basic_constraints": {
+        "is_ca": false,
+        "path_length_constraint": null
+      },
+      "extensions": [
+        {
+          "oid": "2.5.29.14",
+          "critical": false,
+          "decoded": true
+        },
+        {
+          "oid": "2.5.29.35",
+          "critical": false,
+          "decoded": true
+        },
+        {
+          "oid": "2.5.29.19",
+          "critical": true,
+          "decoded": true
+        },
+        {
+          "oid": "2.5.29.15",
+          "critical": true,
+          "decoded": true
+        },
+        {
+          "oid": "2.5.29.37",
+          "critical": false,
+          "decoded": true
+        },
+        {
+          "oid": "2.5.29.17",
+          "critical": false,
+          "decoded": true
+        }
+      ],
+      "public_key": {
+        "algorithm": {
+          "oid": "1.2.840.113549.1.1.1",
+          "display_name": "rsaEncryption"
+        },
+        "size_bits": 2048
+      },
+      "signature_algorithm": {
+        "oid": "1.2.840.113549.1.1.11",
+        "display_name": "sha256WithRSAEncryption"
+      },
+      "fingerprints": {
+        "sha256": "322180b29c7c5d0c983ed057b0c824153d33ef16afa22c3890e35e27a344dce2",
+        "sha1": "2293c159e4d9a1165443a7440e2652a67d0a004c"
+      },
+      "is_self_issued": true
+    }
+  ]
+}

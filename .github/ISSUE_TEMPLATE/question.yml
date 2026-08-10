@@ -1,0 +1,38 @@
+name: Usage question / 使用问题
+description: Ask a focused question after reading the documentation. / 阅读文档后提出聚焦的使用问题。
+title: "[Question]: "
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        General discussion belongs in GitHub Discussions. Never include sensitive certificate contents.
+        一般讨论请使用 GitHub Discussions。绝不要包含敏感证书内容。
+  - type: dropdown
+    id: security
+    attributes:
+      label: Security check / 安全检查
+      description: Suspected vulnerabilities must use Private Vulnerability Reporting. / 疑似漏洞必须通过 Private Vulnerability Reporting 报告。
+      options:
+        - This is not a security vulnerability. / 这不是安全漏洞。
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: What are you trying to understand? / 你想了解什么？
+    validations:
+      required: true
+  - type: textarea
+    id: docs
+    attributes:
+      label: Documentation checked / 已查阅文档
+      description: List the README, schema guide, or self-hosting sections you checked. / 列出已查阅的 README、Schema 或自托管章节。
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Non-sensitive context / 非敏感上下文
+      description: Include the version and browser if relevant, but no private certificate data. / 如有必要可包含版本和浏览器，但不要包含私密证书数据。

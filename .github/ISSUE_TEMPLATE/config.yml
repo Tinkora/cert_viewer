@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Private Vulnerability Reporting / 私密漏洞报告
+    url: https://github.com/tinkora/cert_viewer/security/advisories/new
+    about: Report suspected vulnerabilities privately. / 私下报告疑似漏洞。
+  - name: GitHub Discussions / GitHub 讨论
+    url: https://github.com/tinkora/cert_viewer/discussions
+    about: Ask general usage questions and explore early ideas. / 提出一般使用问题并讨论早期想法。

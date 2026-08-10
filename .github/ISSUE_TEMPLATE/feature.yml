@@ -1,0 +1,61 @@
+name: Evidence-backed feature / 有证据的功能
+description: Propose a demonstrated workflow that fits local-only certificate inspection. / 提议符合本地证书检查定位、且已有证据的工作流。
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Start with the user problem and evidence, not a preferred implementation.
+        请从用户问题和证据开始，而不是预设实现。
+  - type: dropdown
+    id: security
+    attributes:
+      label: Security check / 安全检查
+      description: Suspected vulnerabilities must use Private Vulnerability Reporting. / 疑似漏洞必须通过 Private Vulnerability Reporting 报告。
+      options:
+        - This is not a security vulnerability. / 这不是安全漏洞。
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem / 用户问题
+      description: Who has this problem, in what workflow, and how often? / 哪些用户在什么工作流中遇到问题，频率如何？
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence / 证据
+      description: Link non-sensitive reports, examples, or repeated requests that demonstrate the need. / 提供可证明需求的非敏感报告、示例或重复请求。
+    validations:
+      required: true
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround / 当前 workaround
+      description: Explain how users handle this today and why it is insufficient. / 说明用户目前如何处理，以及为何不足。
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Smallest useful outcome / 最小可用结果
+      description: Describe observable behavior, not an internal design. / 描述可观察行为，而不是内部设计。
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered / 考虑过的替代方案
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundary
+    attributes:
+      label: Product boundary / 产品边界
+      options:
+        - label: This request preserves local-only, inspection-only behavior and does not require certificate uploads. / 此请求保持 local-only、inspection-only 行为，且不需要上传证书。
+          required: true
