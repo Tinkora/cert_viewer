@@ -498,16 +498,24 @@ jobs:
         run: |
           mapfile -t assets < <(find candidate -maxdepth 1 -type f -print | sort)
           test "${#assets[@]}" = 4
-          gh release create "${RELEASE_TAG}" "${assets[@]}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            --title "${RELEASE_TAG}" \
-            --notes-file "${RUNNER_TEMP}/release-notes.md" \
-            --draft \
-            --verify-tag
-          asset_count="$(gh api \
-            "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
-            --jq '.assets | length')"
-          test "${asset_count}" = 4
+          release_id="$(gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/releases" \
+            -f tag_name="${RELEASE_TAG}" \
+            -f target_commitish="${GITHUB_SHA}" \
+            -f name="${RELEASE_TAG}" \
+            -F body=@"${RUNNER_TEMP}/release-notes.md" \
+            -F draft=true \
+            -F prerelease=false \
+            -F generate_release_notes=false \
+            --jq '.id')"
+          gh release upload "${RELEASE_TAG}" "${assets[@]}" \
+            --repo "${GITHUB_REPOSITORY}"
+          release_json="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/releases/${release_id}")"
+          test "$(jq -r '.tag_name' <<< "${release_json}")" = "${RELEASE_TAG}"
+          test "$(jq -r '.draft' <<< "${release_json}")" = true
+          test "$(jq -r '.assets | length' <<< "${release_json}")" = 4
 
       - name: Verify remote tag commit before publication
         env:

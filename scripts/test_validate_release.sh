@@ -334,8 +334,21 @@ tag_verification_steps.each do |index|
   )
 end
 create_draft_index = publish_steps.index do |step|
-  step.fetch("run", "").include?("gh release create")
+  step["name"] == "Create draft and upload four assets"
 end
+create_draft_step = publish_steps.fetch(create_draft_index)
+create_draft_run = create_draft_step.fetch("run", "")
+assert_contract(
+  create_draft_run.include?('release_id="$(gh api') &&
+    create_draft_run.include?('--method POST') &&
+    create_draft_run.include?('repos/${GITHUB_REPOSITORY}/releases') &&
+    create_draft_run.include?('repos/${GITHUB_REPOSITORY}/releases/${release_id}'),
+  "draft publication must capture the create response ID and read back by release ID"
+)
+assert_contract(
+  !create_draft_run.include?('releases/tags/${RELEASE_TAG}'),
+  "draft publication must not use the published-release tag endpoint"
+)
 publish_draft_index = publish_steps.index do |step|
   step.fetch("run", "").include?("gh release edit") && step.fetch("run", "").include?("--draft=false")
 end
