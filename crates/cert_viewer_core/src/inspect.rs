@@ -235,7 +235,7 @@ fn general_name(name: &GeneralName<'_>) -> GeneralNameEntry {
             "x400_address",
             format!("tag_{}:{}", value.tag().0, hex::encode(value.data)),
         ),
-        GeneralName::DirectoryName(value) => ("directory_name", value.to_string()),
+        GeneralName::DirectoryName(value) => ("directory_name", directory_name(value)),
         GeneralName::EDIPartyName(value) => (
             "edi_party_name",
             format!("tag_{}:{}", value.tag().0, hex::encode(value.data)),
@@ -261,6 +261,53 @@ fn general_name(name: &GeneralName<'_>) -> GeneralNameEntry {
         kind: kind.to_owned(),
         value,
     }
+}
+
+// Keep this machine-facing representation independent of x509-parser's display registry and
+// formatting choices: OIDs are always dotted, RDNs/attributes retain encoded order, text uses
+// explicit escaping, and non-text values are marked with lowercase hexadecimal.
+fn directory_name(name: &x509_parser::x509::X509Name<'_>) -> String {
+    name.iter_rdn()
+        .map(|rdn| {
+            rdn.iter()
+                .map(directory_attribute)
+                .collect::<Vec<_>>()
+                .join("+")
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn directory_attribute(attribute: &x509_parser::x509::AttributeTypeAndValue<'_>) -> String {
+    let value = match attribute.as_str() {
+        Ok(value) => escape_directory_text(value),
+        Err(_) => format!("#{}", hex::encode(attribute.as_slice())),
+    };
+    format!("{}={value}", oid::id(attribute.attr_type()))
+}
+
+fn escape_directory_text(value: &str) -> String {
+    let mut escaped = String::with_capacity(value.len());
+    for (index, character) in value.char_indices() {
+        let at_boundary = index == 0 || index + character.len_utf8() == value.len();
+        match character {
+            ' ' if at_boundary => escaped.push_str("\\ "),
+            '#' if index == 0 => escaped.push_str("\\#"),
+            ',' | '+' | '"' | '\\' | '<' | '>' | ';' | '=' => {
+                escaped.push('\\');
+                escaped.push(character);
+            }
+            character if character.is_ascii_control() => {
+                let byte = character as u8;
+                const HEX: &[u8; 16] = b"0123456789abcdef";
+                escaped.push('\\');
+                escaped.push(HEX[(byte >> 4) as usize] as char);
+                escaped.push(HEX[(byte & 0x0f) as usize] as char);
+            }
+            character => escaped.push(character),
+        }
+    }
+    escaped
 }
 
 fn inspect_public_key(certificate: &X509Certificate<'_>) -> PublicKeyInfo {
@@ -290,4 +337,46 @@ fn invalid_der(index: usize) -> InspectionError {
         "Certificate DER could not be decoded.",
         index,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn formats_directory_name_with_dotted_oids_and_lowercase_binary_hex() {
+        let der = [
+            0x30, 0x22, // Name
+            0x31, 0x20, // RelativeDistinguishedName
+            0x30, 0x10, // unknown OID attribute
+            0x06, 0x04, 0x2a, 0x03, 0x04, 0x05, // 1.2.3.4.5
+            0x0c, 0x08, b'r', b'e', b't', b'a', b'i', b'n', b'e', b'd', 0x30,
+            0x0c, // binary common-name attribute
+            0x06, 0x03, 0x55, 0x04, 0x03, // 2.5.4.3
+            0x04, 0x05, 0x00, 0xab, 0xff, 0x10, 0x2c,
+        ];
+        let (_, name) = x509_parser::x509::X509Name::from_der(&der).expect("name parses");
+
+        let entry = general_name(&GeneralName::DirectoryName(name));
+
+        assert_eq!(entry.kind, "directory_name");
+        assert_eq!(entry.value, "1.2.3.4.5=retained+2.5.4.3=#00abff102c");
+    }
+
+    #[test]
+    fn escapes_directory_name_text_delimiters_and_boundary_spaces() {
+        let der = [
+            0x30, 0x17, // Name
+            0x31, 0x15, // RelativeDistinguishedName
+            0x30, 0x13, // text attribute
+            0x06, 0x04, 0x2a, 0x03, 0x04, 0x05, // 1.2.3.4.5
+            0x0c, 0x0b, // " value,=+\\ " with boundary spaces
+            b' ', b'v', b'a', b'l', b'u', b'e', b',', b'=', b'+', b'\\', b' ',
+        ];
+        let (_, name) = x509_parser::x509::X509Name::from_der(&der).expect("name parses");
+
+        let entry = general_name(&GeneralName::DirectoryName(name));
+
+        assert_eq!(entry.value, "1.2.3.4.5=\\ value\\,\\=\\+\\\\\\ ");
+    }
 }
