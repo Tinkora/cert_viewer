@@ -495,8 +495,8 @@ def documentation_errors(root)
   changelog = read_utf8(root.join("CHANGELOG.md"), errors, root)
   if changelog
     release_headings = changelog.scan(/^## \[[^\]]+\] - \d{4}-\d{2}-\d{2}$/)
-    expected = "## [0.1.0] - 2026-08-10"
-    errors << "CHANGELOG.md: must contain exactly one release heading: #{expected}" unless release_headings == [expected]
+    expected = "## [0.1.1] - 2026-08-11"
+    errors << "CHANGELOG.md: newest release heading must be #{expected}" unless release_headings.first == expected
   end
 
   [errors.uniq.sort, text_files.length]
