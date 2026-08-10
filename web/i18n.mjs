@@ -1,0 +1,376 @@
+const dictionaries = {
+  en: {
+    app: {
+      title: 'Tinkora Cert Viewer',
+    },
+    language: {
+      control_label: 'Language',
+      english: 'English',
+      simplified_chinese: 'Simplified Chinese',
+    },
+    headings: {
+      input: 'Certificate input',
+      results: 'Inspection results',
+      certificate: 'Certificate {number}',
+      identity: 'Identity',
+      validity: 'Stated dates',
+      alternative_names: 'Subject alternative names',
+      usages: 'Usages',
+      constraints: 'Constraints',
+      cryptography: 'Cryptographic details',
+      fingerprints: 'Fingerprints',
+    },
+    actions: {
+      inspect: 'Inspect',
+      clear: 'Clear',
+      choose_file: 'Choose file',
+      load_sample: 'Load sample',
+      copy_sha256: 'Copy SHA-256 fingerprint',
+      copy_sha1: 'Copy SHA-1 fingerprint',
+      copy_json: 'Copy complete JSON',
+    },
+    inputs: {
+      certificate: {
+        label: 'Certificate data',
+        placeholder: 'Paste PEM certificate data',
+        hint: 'Paste PEM or choose a local .pem, .crt, .cer, or .der file.',
+      },
+    },
+    file: {
+      none: 'No file selected',
+      selected: 'Selected: {name}',
+      reading: 'Reading: {name}',
+    },
+    states: {
+      empty: 'No certificate has been inspected yet.',
+      loading: 'Inspecting certificate data...',
+      success: 'Inspection complete: {count} certificate(s).',
+    },
+    errors: {
+      title: 'Unable to inspect certificate data',
+      code: 'Error code',
+      certificate_index: 'Certificate index',
+      detail: 'Detail',
+      unknown: 'Unknown inspection error',
+      codes: {
+        invalid_input_type: 'Unsupported input type',
+        invalid_current_time: 'Invalid current time',
+        input_empty: 'No certificate data provided',
+        input_too_large: 'Certificate data is too large',
+        invalid_pem_utf8: 'PEM data is not valid UTF-8',
+        invalid_pem: 'Invalid PEM data',
+        non_certificate_pem_block: 'PEM block is not a certificate',
+        too_many_certificates: 'Too many certificates',
+        invalid_der: 'Invalid DER data',
+        trailing_der_data: 'Unexpected data follows the DER certificate',
+        unsupported_certificate_version: 'Unsupported certificate version',
+        file_read_failed: 'Unable to read the selected file',
+        wasm_initialization_failed: 'Certificate inspection engine could not start',
+      },
+    },
+    fields: {
+      schema_version: 'Schema version',
+      input_format: 'Input format',
+      input_index: 'Input index',
+      version: 'Version',
+      serial_number: 'Serial number',
+      subject: 'Subject',
+      issuer: 'Issuer',
+      common_name: 'Common name',
+      organization: 'Organization',
+      organizational_unit: 'Organizational unit',
+      country: 'Country',
+      state: 'State',
+      locality: 'Locality',
+      entries: 'Entries',
+      oid: 'OID',
+      value: 'Value',
+      value_format: 'Value format',
+      not_before_unix: 'Not before',
+      not_after_unix: 'Not after',
+      date_status: 'Date status',
+      subject_alt_names: 'Subject alternative names',
+      key_usage: 'Key usage',
+      extended_key_usage: 'Extended key usage',
+      basic_constraints: 'Basic constraints',
+      is_ca: 'Certificate authority',
+      path_length_constraint: 'Path length constraint',
+      extensions: 'Extensions',
+      critical: 'Critical',
+      decoded: 'Decoded',
+      public_key: 'Public key algorithm',
+      algorithm: 'Algorithm',
+      size_bits: 'Key size',
+      signature_algorithm: 'Signature algorithm identifier',
+      fingerprints: 'Fingerprints',
+      sha256: 'SHA-256',
+      sha1: 'SHA-1',
+      is_self_issued: 'Subject matches issuer',
+    },
+    disclosures: {
+      subject_entries: 'Subject entries',
+      issuer_entries: 'Issuer entries',
+      extensions: 'Extension details',
+      json: 'Complete JSON',
+    },
+    copy: {
+      copy: 'Copy',
+      copied: 'Copied',
+      failed: 'Copy failed',
+    },
+    notes: {
+      sha1_legacy: 'SHA-1 is a legacy algorithm and is shown only for comparison.',
+      local_processing: 'Certificate data is processed locally in this browser.',
+    },
+    capabilities: {
+      human_usable: 'Human-usable',
+      machine_readable: 'Machine-readable',
+      agent_schema_draft: 'Agent schema draft',
+      not_agent_callable: 'Not Agent-callable',
+    },
+    input_support: {
+      pem: 'PEM input',
+      der: 'DER input',
+      bundles: 'Certificate bundles',
+      local_only: 'Local-only processing',
+    },
+    status: {
+      not_yet_valid: 'Before stated dates',
+      within_stated_dates: 'Within stated dates',
+      expired: 'After stated dates',
+    },
+    general_names: {
+      other_name: 'Other name',
+      email: 'Email address',
+      dns: 'DNS name',
+      x400_address: 'X.400 address',
+      directory_name: 'Directory name',
+      edi_party_name: 'EDI party name',
+      uri: 'URI',
+      ip: 'IP address',
+      registered_id: 'Registered ID',
+      invalid: 'Unrecognized name',
+    },
+    input_formats: {
+      pem_bundle: 'PEM bundle',
+      der: 'DER',
+    },
+    name_value_formats: {
+      text: 'Text',
+      hex: 'Hexadecimal',
+    },
+    values: {
+      yes: 'Yes',
+      no: 'No',
+      none: 'None',
+      unknown: 'Unknown',
+      present: 'Present',
+      bits: '{count} bits',
+    },
+    punctuation: {
+      label_separator: ': ',
+    },
+  },
+  zhCN: {
+    app: {
+      title: 'Tinkora 证书查看器',
+    },
+    language: {
+      control_label: '语言',
+      english: 'English',
+      simplified_chinese: '简体中文',
+    },
+    headings: {
+      input: '证书输入',
+      results: '检查结果',
+      certificate: '证书 {number}',
+      identity: '身份信息',
+      validity: '声明日期',
+      alternative_names: '使用者可选名称',
+      usages: '用途',
+      constraints: '约束',
+      cryptography: '密码学详情',
+      fingerprints: '指纹',
+    },
+    actions: {
+      inspect: '检查',
+      clear: '清除',
+      choose_file: '选择文件',
+      load_sample: '加载示例',
+      copy_sha256: '复制 SHA-256 指纹',
+      copy_sha1: '复制 SHA-1 指纹',
+      copy_json: '复制完整 JSON',
+    },
+    inputs: {
+      certificate: {
+        label: '证书数据',
+        placeholder: '粘贴 PEM 证书数据',
+        hint: '粘贴 PEM，或选择本地 .pem、.crt、.cer 或 .der 文件。',
+      },
+    },
+    file: {
+      none: '未选择文件',
+      selected: '已选择：{name}',
+      reading: '正在读取：{name}',
+    },
+    states: {
+      empty: '尚未检查证书。',
+      loading: '正在检查证书数据...',
+      success: '检查完成：共 {count} 张证书。',
+    },
+    errors: {
+      title: '无法检查证书数据',
+      code: '错误代码',
+      certificate_index: '证书索引',
+      detail: '详细信息',
+      unknown: '未知检查错误',
+      codes: {
+        invalid_input_type: '不支持的输入类型',
+        invalid_current_time: '当前时间无效',
+        input_empty: '未提供证书数据',
+        input_too_large: '证书数据过大',
+        invalid_pem_utf8: 'PEM 数据不是有效的 UTF-8',
+        invalid_pem: 'PEM 数据无效',
+        non_certificate_pem_block: 'PEM 数据块不是证书',
+        too_many_certificates: '证书数量过多',
+        invalid_der: 'DER 数据无效',
+        trailing_der_data: 'DER 证书后存在意外数据',
+        unsupported_certificate_version: '不支持的证书版本',
+        file_read_failed: '无法读取所选文件',
+        wasm_initialization_failed: '证书检查引擎无法启动',
+      },
+    },
+    fields: {
+      schema_version: 'Schema 版本',
+      input_format: '输入格式',
+      input_index: '输入索引',
+      version: '版本',
+      serial_number: '序列号',
+      subject: '使用者',
+      issuer: '颁发者',
+      common_name: '通用名称',
+      organization: '组织',
+      organizational_unit: '组织单位',
+      country: '国家或地区',
+      state: '省/州',
+      locality: '地区',
+      entries: '条目',
+      oid: 'OID',
+      value: '值',
+      value_format: '值格式',
+      not_before_unix: '起始日期',
+      not_after_unix: '结束日期',
+      date_status: '日期状态',
+      subject_alt_names: '使用者可选名称',
+      key_usage: '密钥用途',
+      extended_key_usage: '扩展密钥用途',
+      basic_constraints: '基本约束',
+      is_ca: '证书颁发机构',
+      path_length_constraint: '路径长度约束',
+      extensions: '扩展',
+      critical: '关键',
+      decoded: '已解码',
+      public_key: '公钥算法',
+      algorithm: '算法',
+      size_bits: '密钥长度',
+      signature_algorithm: '签名算法标识符',
+      fingerprints: '指纹',
+      sha256: 'SHA-256',
+      sha1: 'SHA-1',
+      is_self_issued: '使用者与颁发者一致',
+    },
+    disclosures: {
+      subject_entries: '使用者条目',
+      issuer_entries: '颁发者条目',
+      extensions: '扩展详情',
+      json: '完整 JSON',
+    },
+    copy: {
+      copy: '复制',
+      copied: '已复制',
+      failed: '复制失败',
+    },
+    notes: {
+      sha1_legacy: 'SHA-1 是旧式算法，此处仅用于对照。',
+      local_processing: '证书数据仅在此浏览器中本地处理。',
+    },
+    capabilities: {
+      human_usable: '人类可用',
+      machine_readable: '机器可读',
+      agent_schema_draft: 'Agent Schema 草案',
+      not_agent_callable: '不可由 Agent 调用',
+    },
+    input_support: {
+      pem: 'PEM 输入',
+      der: 'DER 输入',
+      bundles: '证书包',
+      local_only: '仅本地处理',
+    },
+    status: {
+      not_yet_valid: '早于证书声明日期',
+      within_stated_dates: '在证书声明日期范围内',
+      expired: '晚于证书声明日期',
+    },
+    general_names: {
+      other_name: '其他名称',
+      email: '电子邮件地址',
+      dns: 'DNS 名称',
+      x400_address: 'X.400 地址',
+      directory_name: '目录名称',
+      edi_party_name: 'EDI 参与方名称',
+      uri: 'URI',
+      ip: 'IP 地址',
+      registered_id: '注册 ID',
+      invalid: '无法识别的名称',
+    },
+    input_formats: {
+      pem_bundle: 'PEM 证书包',
+      der: 'DER',
+    },
+    name_value_formats: {
+      text: '文本',
+      hex: '十六进制',
+    },
+    values: {
+      yes: '是',
+      no: '否',
+      none: '无',
+      unknown: '未知',
+      present: '存在',
+      bits: '{count} 位',
+    },
+    punctuation: {
+      label_separator: '：',
+    },
+  },
+};
+
+function deepFreeze(value) {
+  for (const child of Object.values(value)) {
+    if (child && typeof child === 'object') deepFreeze(child);
+  }
+  return Object.freeze(value);
+}
+
+export const messages = deepFreeze(dictionaries);
+
+export function normalizeLanguage(value) {
+  return value === 'zh-CN' ? 'zh-CN' : 'en';
+}
+
+export function createTranslator(language) {
+  const dictionary = normalizeLanguage(language) === 'zh-CN' ? messages.zhCN : messages.en;
+
+  return (key, replacements = {}) => {
+    const resolved = key.split('.').reduce(
+      (value, segment) => value && typeof value === 'object' ? value[segment] : undefined,
+      dictionary,
+    );
+    if (typeof resolved !== 'string') return key;
+
+    return Object.entries(replacements).reduce(
+      (text, [name, value]) => text.split(`{${name}}`).join(String(value)),
+      resolved,
+    );
+  };
+}

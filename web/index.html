@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Tinkora Cert Viewer</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <a class="skip-link" href="#workspace" data-i18n="headings.input">Certificate input</a>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand-block">
+        <h1 data-i18n="app.title">Tinkora Cert Viewer</h1>
+        <p data-i18n="notes.local_processing">Certificate data is processed locally in this browser.</p>
+      </div>
+
+      <div class="language-picker" role="group" aria-label="Language" data-i18n-aria-label="language.control_label">
+        <img class="icon" src="./icons/languages.svg" alt="">
+        <button type="button" class="language-option" data-language="en" aria-pressed="true" data-i18n="language.english">English</button>
+        <button type="button" class="language-option" data-language="zh-CN" aria-pressed="false" data-i18n="language.simplified_chinese">简体中文</button>
+      </div>
+    </div>
+
+    <ul class="capability-list">
+      <li data-i18n="capabilities.human_usable">Human-usable</li>
+      <li data-i18n="capabilities.machine_readable">Machine-readable</li>
+      <li data-i18n="capabilities.agent_schema_draft">Agent schema draft</li>
+      <li data-i18n="capabilities.not_agent_callable">Not Agent-callable</li>
+    </ul>
+  </header>
+
+  <main id="workspace" tabindex="-1">
+    <section class="input-band" aria-labelledby="input-heading">
+      <div class="workspace-inner">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">X.509 / WASM</p>
+            <h2 id="input-heading" data-i18n="headings.input">Certificate input</h2>
+          </div>
+          <ul class="input-support">
+            <li data-i18n="input_support.pem">PEM input</li>
+            <li data-i18n="input_support.der">DER input</li>
+            <li data-i18n="input_support.bundles">Certificate bundles</li>
+            <li data-i18n="input_support.local_only">Local-only processing</li>
+          </ul>
+        </div>
+
+        <label for="certificate-input" data-i18n="inputs.certificate.label">Certificate data</label>
+        <textarea id="certificate-input" spellcheck="false" autocomplete="off" aria-describedby="input-hint" data-i18n-placeholder="inputs.certificate.placeholder" placeholder="Paste PEM certificate data"></textarea>
+        <p class="input-hint" id="input-hint" data-i18n="inputs.certificate.hint">Paste PEM or choose a local .pem, .crt, .cer, or .der file.</p>
+
+        <div class="input-actions" id="drop-zone">
+          <input id="file-input" class="visually-hidden" type="file" accept=".pem,.crt,.cer,.der">
+          <label class="button secondary-button" for="file-input">
+            <img class="icon" src="./icons/file-up.svg" alt="">
+            <span data-i18n="actions.choose_file">Choose file</span>
+          </label>
+          <button type="button" class="secondary-button" id="load-sample">
+            <img class="icon" src="./icons/file-up.svg" alt="">
+            <span data-i18n="actions.load_sample">Load sample</span>
+          </button>
+          <span class="file-status mono-value" id="file-status">No file selected</span>
+        </div>
+
+        <div class="command-row">
+          <button type="button" class="primary-button" id="inspect" disabled>
+            <img class="icon" src="./icons/scan-search.svg" alt="">
+            <span data-i18n="actions.inspect">Inspect</span>
+          </button>
+          <button type="button" class="secondary-button" id="clear">
+            <img class="icon" src="./icons/trash-2.svg" alt="">
+            <span data-i18n="actions.clear">Clear</span>
+          </button>
+          <p class="status-line" id="status" role="status" aria-live="polite" aria-atomic="true">No certificate has been inspected yet.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="results-band" aria-live="off">
+      <div class="results-inner" id="results"></div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p data-i18n="notes.local_processing">Certificate data is processed locally in this browser.</p>
+  </footer>
+</body>
+</html>

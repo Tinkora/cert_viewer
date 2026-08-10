@@ -1,0 +1,9 @@
+serial=2001
+subject=C=US, O=Tinkora Test, CN=ec-ca.fixture.tinkora.test
+issuer=C=US, O=Tinkora Test, CN=ec-ca.fixture.tinkora.test
+notBefore=Aug 10 05:21:50 2026 GMT
+notAfter=Aug  7 05:21:50 2036 GMT
+X509v3 Basic Constraints: critical
+    CA:TRUE, pathlen:1
+X509v3 Key Usage: critical
+    Certificate Sign, CRL Sign

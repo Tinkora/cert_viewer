@@ -1,0 +1,28 @@
+{
+  "name": "tinkora-cert-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:web": "bash scripts/build_web.sh",
+    "test:browser": "playwright test",
+    "test:build": "bash scripts/test_build_web.sh",
+    "test:schema": "node scripts/validate_schema.mjs",
+    "test:sbom": "node --test tests/release/release_sbom.test.mjs",
+    "test:wasm-smoke": "playwright test --grep @wasm-smoke --project chromium-1440",
+    "test:web": "node --test tests/web/*.test.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@playwright/test": "1.62.1",
+    "ajv": "8.20.0",
+    "github-slugger": "2.0.0",
+    "linkedom": "0.18.13",
+    "lucide-static": "1.31.0",
+    "markdown-it": "14.3.0",
+    "markdownlint-cli2": "0.23.2"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  }
+}

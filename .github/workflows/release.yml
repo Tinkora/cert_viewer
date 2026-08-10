@@ -1,0 +1,545 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Stable release tag to validate without publishing
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.repository }}-${{ inputs.release_tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+
+jobs:
+  metadata:
+    name: Validate metadata and release state
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install Rust
+        run: rustup toolchain install 1.95.0 --profile minimal --no-self-update
+
+      - name: Validate release metadata
+        env:
+          RELEASE_MODE: ${{ github.event_name == 'push' && 'tag' || 'canary' }}
+        run: bash scripts/validate_release.sh "${RELEASE_TAG}" . "${RELEASE_MODE}"
+
+      - name: Reject an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          status="$(curl --proto '=https' --tlsv1.2 --silent --show-error \
+            --output /dev/null --write-out '%{http_code}' \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")"
+          case "${status}" in
+            404) ;;
+            200)
+              printf 'Release %s already exists; release assets are immutable.\n' \
+                "${RELEASE_TAG}" >&2
+              exit 1
+              ;;
+            *)
+              printf 'Unable to verify release absence: GitHub returned HTTP %s.\n' \
+                "${status}" >&2
+              exit 1
+              ;;
+          esac
+
+  quality:
+    uses: ./.github/workflows/quality.yml
+    permissions:
+      contents: read
+
+  build:
+    name: Build deterministic release archives
+    needs: [metadata, quality]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - name: Check out release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install build dependencies
+        run: |
+          rustup toolchain install 1.95.0 --profile minimal --no-self-update
+          rustup target add wasm32-unknown-unknown --toolchain 1.95.0
+          cargo +1.95.0 install wasm-pack --version 0.15.0 --locked
+          npm ci --ignore-scripts
+
+      - name: Build reviewed web distribution
+        env:
+          RUSTUP_TOOLCHAIN: 1.95.0
+        run: bash scripts/build_web.sh
+
+      - name: Create deterministic archives
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          source_date_epoch="$(git show -s --format=%ct "${GITHUB_SHA}")"
+          web_root="cert_viewer-web-v${VERSION}"
+          source_root="cert_viewer-source-v${VERSION}"
+          mkdir -p candidate "staging/${web_root}"
+          cp -a dist/. "staging/${web_root}/"
+          git archive --format=tar --prefix="${source_root}/" "${GITHUB_SHA}" |
+            tar -xf - -C staging
+
+          if find staging -type l -o \( ! -type f ! -type d \) | grep -q .; then
+            printf 'Release staging contains a symlink or special file.\n' >&2
+            exit 1
+          fi
+
+          for archive_root in "${web_root}" "${source_root}"; do
+            tar --sort=name \
+              --mtime="@${source_date_epoch}" \
+              --owner=0 --group=0 --numeric-owner \
+              --pax-option=delete=atime,delete=ctime \
+              -C staging -cf - "${archive_root}" |
+              gzip -n > "candidate/${archive_root}.tar.gz"
+          done
+
+          test -s "candidate/cert_viewer-web-v${VERSION}.tar.gz"
+          test -s "candidate/cert_viewer-source-v${VERSION}.tar.gz"
+
+      - name: Upload archive candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: cert-viewer-release-archives-${{ github.run_id }}
+          path: candidate/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  checksum:
+    name: Generate archive checksums
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Download archive candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: cert-viewer-release-archives-${{ github.run_id }}
+          path: candidate
+
+      - name: Generate SHA-256 manifest
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          cd candidate
+          test -f "cert_viewer-web-v${VERSION}.tar.gz"
+          test -f "cert_viewer-source-v${VERSION}.tar.gz"
+          sha256sum -- \
+            "cert_viewer-web-v${VERSION}.tar.gz" \
+            "cert_viewer-source-v${VERSION}.tar.gz" > SHA256SUMS
+          test "$(wc -l < SHA256SUMS | tr -d ' ')" = 2
+
+      - name: Upload checksum candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: cert-viewer-release-checksums-${{ github.run_id }}
+          path: candidate/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7
+
+  sbom:
+    name: Generate SPDX release SBOM
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Set up Rust metadata toolchain
+        run: rustup toolchain install 1.95.0 --profile minimal --no-self-update
+
+      - name: Download archive candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: cert-viewer-release-archives-${{ github.run_id }}
+          path: candidate
+
+      - name: Generate and validate SPDX inventory
+        env:
+          RUSTUP_TOOLCHAIN: 1.95.0
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          web_archive="cert_viewer-web-v${VERSION}.tar.gz"
+          source_archive="cert_viewer-source-v${VERSION}.tar.gz"
+          source_date_epoch="$(git show -s --format=%ct "${GITHUB_SHA}")"
+          created="$(date -u -d "@${source_date_epoch}" '+%Y-%m-%dT%H:%M:%SZ')"
+          node scripts/release_sbom.mjs generate \
+            --version "${VERSION}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            --commit "${GITHUB_SHA}" \
+            --created "${created}" \
+            --web-archive "candidate/${web_archive}" \
+            --source-archive "candidate/${source_archive}" \
+            --output candidate/SBOM.spdx.json
+          node scripts/release_sbom.mjs validate \
+            --version "${VERSION}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            --commit "${GITHUB_SHA}" \
+            --web-archive "candidate/${web_archive}" \
+            --source-archive "candidate/${source_archive}" \
+            --sbom candidate/SBOM.spdx.json
+
+      - name: Upload SBOM candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: cert-viewer-release-sbom-${{ github.run_id }}
+          path: candidate/SBOM.spdx.json
+          if-no-files-found: error
+          retention-days: 7
+
+  attest:
+    name: Attest release archives and SBOM
+    needs: [build, checksum, sbom]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      attestations: write
+      id-token: write
+    steps:
+      - name: Check out release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Set up Rust metadata toolchain
+        run: rustup toolchain install 1.95.0 --profile minimal --no-self-update
+
+      - name: Download archive candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: cert-viewer-release-archives-${{ github.run_id }}
+          path: candidate
+
+      - name: Download checksum candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: cert-viewer-release-checksums-${{ github.run_id }}
+          path: candidate
+
+      - name: Download SBOM candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: cert-viewer-release-sbom-${{ github.run_id }}
+          path: candidate
+
+      - name: Verify attestation inputs
+        env:
+          RUSTUP_TOOLCHAIN: 1.95.0
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          web_archive="cert_viewer-web-v${VERSION}.tar.gz"
+          source_archive="cert_viewer-source-v${VERSION}.tar.gz"
+          (cd candidate && sha256sum --check --strict -- SHA256SUMS)
+          node scripts/release_sbom.mjs validate \
+            --version "${VERSION}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            --commit "${GITHUB_SHA}" \
+            --web-archive "candidate/${web_archive}" \
+            --source-archive "candidate/${source_archive}" \
+            --sbom candidate/SBOM.spdx.json
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a
+        with:
+          subject-path: candidate/*.tar.gz
+
+      - name: Attest SPDX SBOM
+        uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34
+        with:
+          subject-path: candidate/*.tar.gz
+          sbom-path: candidate/SBOM.spdx.json
+
+  verify:
+    name: Verify release candidate inventory
+    needs: [attest, build, checksum, sbom]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Set up Rust metadata toolchain
+        run: rustup toolchain install 1.95.0 --profile minimal --no-self-update
+
+      - name: Download archive candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: cert-viewer-release-archives-${{ github.run_id }}
+          path: candidate
+
+      - name: Download checksum candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: cert-viewer-release-checksums-${{ github.run_id }}
+          path: candidate
+
+      - name: Download SBOM candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: cert-viewer-release-sbom-${{ github.run_id }}
+          path: candidate
+
+      - name: Verify checksums, SPDX records, and inventory
+        env:
+          RUSTUP_TOOLCHAIN: 1.95.0
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          web_archive="cert_viewer-web-v${VERSION}.tar.gz"
+          source_archive="cert_viewer-source-v${VERSION}.tar.gz"
+          cd candidate
+
+          expected="$(printf '%s\n' \
+            "${source_archive}" "${web_archive}" SHA256SUMS SBOM.spdx.json | sort)"
+          actual="$(find . -maxdepth 1 -type f -printf '%f\n' | sort)"
+          if [[ "${actual}" != "${expected}" ]]; then
+            printf 'Release candidate inventory is not exact.\n' >&2
+            diff -u <(printf '%s\n' "${expected}") <(printf '%s\n' "${actual}") >&2 || true
+            exit 1
+          fi
+          sha256sum --check --strict -- SHA256SUMS
+
+          while IFS= read -r entry; do
+            case "${entry}" in
+              cert_viewer-web-v"${VERSION}"/*) ;;
+              *) printf 'Unexpected web archive entry: %s\n' "${entry}" >&2; exit 1 ;;
+            esac
+          done < <(tar -tzf "${web_archive}")
+          while IFS= read -r entry; do
+            case "${entry}" in
+              cert_viewer-source-v"${VERSION}"/*) ;;
+              *) printf 'Unexpected source archive entry: %s\n' "${entry}" >&2; exit 1 ;;
+            esac
+          done < <(tar -tzf "${source_archive}")
+          cd ..
+          node scripts/release_sbom.mjs validate \
+            --version "${VERSION}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            --commit "${GITHUB_SHA}" \
+            --web-archive "candidate/${web_archive}" \
+            --source-archive "candidate/${source_archive}" \
+            --sbom candidate/SBOM.spdx.json
+
+  publish:
+    name: Publish GitHub Release
+    needs: [metadata, quality, build, checksum, sbom, attest, verify]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - name: Check out release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Set up Rust metadata toolchain
+        run: rustup toolchain install 1.95.0 --profile minimal --no-self-update
+
+      - name: Download archive candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: cert-viewer-release-archives-${{ github.run_id }}
+          path: candidate
+
+      - name: Download checksum candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: cert-viewer-release-checksums-${{ github.run_id }}
+          path: candidate
+
+      - name: Download SBOM candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: cert-viewer-release-sbom-${{ github.run_id }}
+          path: candidate
+
+      - name: Reverify release state and assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUSTUP_TOOLCHAIN: 1.95.0
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          web_archive="cert_viewer-web-v${VERSION}.tar.gz"
+          source_archive="cert_viewer-source-v${VERSION}.tar.gz"
+          status="$(curl --proto '=https' --tlsv1.2 --silent --show-error \
+            --output /dev/null --write-out '%{http_code}' \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")"
+          test "${status}" = 404
+          cd candidate
+          test "$(find . -maxdepth 1 -type f | wc -l | tr -d ' ')" = 4
+          sha256sum --check --strict -- SHA256SUMS
+          cd ..
+          node scripts/release_sbom.mjs validate \
+            --version "${VERSION}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            --commit "${GITHUB_SHA}" \
+            --web-archive "candidate/${web_archive}" \
+            --source-archive "candidate/${source_archive}" \
+            --sbom candidate/SBOM.spdx.json
+
+      - name: Extract matching changelog section
+        run: |
+          ruby -e '
+            version = ENV.fetch("RELEASE_TAG").delete_prefix("v")
+            lines = File.readlines("CHANGELOG.md", encoding: "UTF-8")
+            start = lines.index { |line| line.match?(/^## \[#{Regexp.escape(version)}\] - \d{4}-\d{2}-\d{2}$/) }
+            abort "matching changelog section is missing" unless start
+            finish = ((start + 1)...lines.length).find { |index| lines[index].start_with?("## ") } || lines.length
+            body = lines[(start + 1)...finish].join.strip
+            abort "matching changelog section is empty" if body.empty?
+            File.write(File.join(ENV.fetch("RUNNER_TEMP"), "release-notes.md"), body + "\n", encoding: "UTF-8")
+          '
+
+      - name: Verify remote tag commit before draft creation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag_json="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}")"
+          tag_type="$(jq -er '.object.type' <<< "${tag_json}")"
+          tag_sha="$(jq -er '.object.sha' <<< "${tag_json}")"
+          peel_depth=0
+          while [[ "${tag_type}" == "tag" ]]; do
+            peel_depth=$((peel_depth + 1))
+            if ((peel_depth > 16)); then
+              printf 'Remote tag %s exceeds the peel depth limit.\n' \
+                "${RELEASE_TAG}" >&2
+              exit 1
+            fi
+            tag_json="$(gh api \
+              "repos/${GITHUB_REPOSITORY}/git/tags/${tag_sha}")"
+            tag_type="$(jq -er '.object.type' <<< "${tag_json}")"
+            tag_sha="$(jq -er '.object.sha' <<< "${tag_json}")"
+          done
+          if [[ "${tag_type}" != "commit" || "${tag_sha}" != "${GITHUB_SHA}" ]]; then
+            printf 'Remote tag %s resolves to %s %s, expected commit %s.\n' \
+              "${RELEASE_TAG}" "${tag_type}" "${tag_sha}" "${GITHUB_SHA}" >&2
+            exit 1
+          fi
+
+      - name: Create draft and upload four assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mapfile -t assets < <(find candidate -maxdepth 1 -type f -print | sort)
+          test "${#assets[@]}" = 4
+          gh release create "${RELEASE_TAG}" "${assets[@]}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "${RELEASE_TAG}" \
+            --notes-file "${RUNNER_TEMP}/release-notes.md" \
+            --draft \
+            --verify-tag
+          asset_count="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
+            --jq '.assets | length')"
+          test "${asset_count}" = 4
+
+      - name: Verify remote tag commit before publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag_json="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}")"
+          tag_type="$(jq -er '.object.type' <<< "${tag_json}")"
+          tag_sha="$(jq -er '.object.sha' <<< "${tag_json}")"
+          peel_depth=0
+          while [[ "${tag_type}" == "tag" ]]; do
+            peel_depth=$((peel_depth + 1))
+            if ((peel_depth > 16)); then
+              printf 'Remote tag %s exceeds the peel depth limit.\n' \
+                "${RELEASE_TAG}" >&2
+              exit 1
+            fi
+            tag_json="$(gh api \
+              "repos/${GITHUB_REPOSITORY}/git/tags/${tag_sha}")"
+            tag_type="$(jq -er '.object.type' <<< "${tag_json}")"
+            tag_sha="$(jq -er '.object.sha' <<< "${tag_json}")"
+          done
+          if [[ "${tag_type}" != "commit" || "${tag_sha}" != "${GITHUB_SHA}" ]]; then
+            printf 'Remote tag %s resolves to %s %s, expected commit %s.\n' \
+              "${RELEASE_TAG}" "${tag_type}" "${tag_sha}" "${GITHUB_SHA}" >&2
+            exit 1
+          fi
+
+      - name: Publish verified draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit "${RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --draft=false

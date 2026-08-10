@@ -1,0 +1,13 @@
+serial=1001
+subject=C=US, O=Tinkora Test, CN=rsa.fixture.tinkora.test
+issuer=C=US, O=Tinkora Test, CN=rsa.fixture.tinkora.test
+notBefore=Aug 10 05:21:50 2026 GMT
+notAfter=Aug  7 05:21:50 2036 GMT
+X509v3 Basic Constraints: critical
+    CA:FALSE
+X509v3 Key Usage: critical
+    Digital Signature, Key Encipherment
+X509v3 Extended Key Usage:
+    TLS Web Server Authentication, TLS Web Client Authentication
+X509v3 Subject Alternative Name:
+    DNS:rsa.fixture.tinkora.test, DNS:alt.fixture.tinkora.test, IP Address:192.0.2.10, email:fixture@tinkora.test, URI:https://fixture.tinkora.test/cert
