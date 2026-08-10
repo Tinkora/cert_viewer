@@ -19,7 +19,7 @@
     "github-slugger": "2.0.0",
     "linkedom": "0.18.13",
     "lucide-static": "1.31.0",
-    "markdown-it": "14.3.0",
+    "markdown-it": "15.0.0",
     "markdownlint-cli2": "0.23.2"
   },
   "engines": {
