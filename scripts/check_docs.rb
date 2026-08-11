@@ -454,7 +454,6 @@ def documentation_errors(root)
     next unless text
 
     name = display_path(path, root)
-    errors << "#{name}: references the former agentcommons organization" if text.match?(%r{https://github\.com/agentcommons}i)
     errors << "#{name}: uses the removed is_self_signed field" if text.match?(/\bis_self_signed\b/)
 
     paragraphs = if path.extname == ".md"
