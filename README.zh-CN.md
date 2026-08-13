@@ -2,6 +2,8 @@
 
 [English](README.md)
 
+[![在 Ko-fi 上支持 Tinkora](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/tinkora)
+
 Tinkora Cert Viewer 是一个仅用于检查、浏览器优先的 X.509 证书查看器，证书内容始终留在你的设备上。
 
 [打开在线查看器](https://tinkora.github.io/cert_viewer/)
