@@ -2,6 +2,8 @@
 
 [简体中文](README.zh-CN.md)
 
+[![Support Tinkora on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/tinkora)
+
 Tinkora Cert Viewer is an inspection-only, browser-first X.509 certificate viewer that keeps certificate contents on your device.
 
 [Open the live viewer](https://tinkora.github.io/cert_viewer/)
