@@ -97,7 +97,7 @@ dependencies = [
 
 [[package]]
 name = "cert_viewer_core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "hex",
  "pem",
@@ -111,7 +111,7 @@ dependencies = [
 
 [[package]]
 name = "cert_viewer_web"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "cert_viewer_core",
  "js-sys",

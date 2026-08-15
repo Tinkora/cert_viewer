@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-08-15
+
+### Changed
+
+- Republished the v0.1.1 code under the canonical Tinkora project identity; runtime behavior is unchanged.
+
 ## [0.1.1] - 2026-08-11
 
 ### Fixed
@@ -24,5 +30,6 @@ All notable changes to this project are documented in this file. The format is b
 - PEM bundles are inspected as ordered collections, not asserted to be verified chains.
 - The published schema is a draft for future agent use and has no callable transport or integration.
 
+[0.1.2]: https://github.com/tinkora/cert_viewer/releases/tag/v0.1.2
 [0.1.1]: https://github.com/tinkora/cert_viewer/releases/tag/v0.1.1
 [0.1.0]: https://github.com/tinkora/cert_viewer/releases/tag/v0.1.0

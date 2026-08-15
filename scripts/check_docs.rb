@@ -494,7 +494,7 @@ def documentation_errors(root)
   changelog = read_utf8(root.join("CHANGELOG.md"), errors, root)
   if changelog
     release_headings = changelog.scan(/^## \[[^\]]+\] - \d{4}-\d{2}-\d{2}$/)
-    expected = "## [0.1.1] - 2026-08-11"
+    expected = "## [0.1.2] - 2026-08-15"
     errors << "CHANGELOG.md: newest release heading must be #{expected}" unless release_headings.first == expected
   end
 

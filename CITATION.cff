@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use Tinkora Cert Viewer, please cite the versioned release."
 title: "Tinkora Cert Viewer"
 type: software
-version: 0.1.1
-date-released: 2026-08-11
+version: 0.1.2
+date-released: 2026-08-15
 license: MIT
 repository-code: "https://github.com/tinkora/cert_viewer"
 url: "https://tinkora.github.io/cert_viewer/"
