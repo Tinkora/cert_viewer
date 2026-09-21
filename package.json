@@ -20,7 +20,7 @@
     "linkedom": "0.18.13",
     "lucide-static": "1.44.0",
     "markdown-it": "14.3.0",
-    "markdownlint-cli2": "0.23.2"
+    "markdownlint-cli2": "0.23.3"
   },
   "engines": {
     "node": ">=24 <25"
